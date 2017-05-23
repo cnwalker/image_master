@@ -7,8 +7,10 @@ import requests
 
 BING_ROOT_URL = 'https://api.cognitive.microsoft.com/bing/v5.0/images/search'
 BING_IMAGE_API_KEY = '19aa2d868e5843c1951325a135db5703' # cnwalker
+GOOGLE_IMAGE_API_KEY = '' # cnwalker
+
 # /Users/jsalavon/Documents/ml/data/'
-IMAGE_DOWNLOAD_DIR = '/Users/Christopher/Desktop/Salavon_Studio/image_master/'
+IMAGE_DOWNLOAD_DIR = '%s/' % os.path.dirname(os.path.realpath(__file__))
 
 def padFront(num, desired_length, val=0):
     # Returns a zero padded string with the length equal to desired_length
