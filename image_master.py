@@ -5,11 +5,15 @@ import concurrent.futures
 
 import requests
 
+# Bing configs
 BING_ROOT_URL = 'https://api.cognitive.microsoft.com/bing/v5.0/images/search'
 BING_IMAGE_API_KEY = '19aa2d868e5843c1951325a135db5703' # cnwalker
-GOOGLE_IMAGE_API_KEY = '' # cnwalker
 
-# /Users/jsalavon/Documents/ml/data/'
+# Google configs
+GOOGLE_ROOT_URL = 'https://www.googleapis.com/customsearch/v1'
+GOOGLE_CX_KEY = '015214662978282099550:vzll-becbck' #cnwalker
+GOOGLE_IMAGE_API_KEY = 'AIzaSyBDzxv_1DTFpMrLObHVyzZ7xU7eo1PX0eg' # cnwalker
+
 IMAGE_DOWNLOAD_DIR = '%s/' % os.path.dirname(os.path.realpath(__file__))
 
 def padFront(num, desired_length, val=0):
@@ -17,7 +21,7 @@ def padFront(num, desired_length, val=0):
     # num should be in the form of a string (i.e '12', '15')
     return ("0" * max(desired_length - len(num), 0)) + num
 
-def cleanURL(urlObj):
+def cleanBingURL(urlObj):
     # Quotes reserved characters and returns a tuple of the URL
     # and the target image's file extension
     formatted_url = urllib2.quote(urlObj['contentUrl'].encode('utf-8'), safe="%/:=&?~#+!$,;'@()*[]")
@@ -34,9 +38,13 @@ def checkResponseForErrors(response):
         print 'ERROR FROM SERVER:\n' + error_messages + '\n--------------'
         raise
 
-def getImageURLs(query, offset, count, adult_filter='Off'):
-    if int(count) == 0:
+def assertPositiveCount(count):
+    if int(count) <= 0:
         raise ValueError("count must be greater than 0")
+
+
+def getBingImageURLs(query, offset, count, adult_filter='Off'):
+    assertPositiveCount(count)
 
     # First get the image urls from Bing
     response = requests.post(BING_ROOT_URL,
@@ -54,10 +62,35 @@ def getImageURLs(query, offset, count, adult_filter='Off'):
     if response.ok:
         bing_response = response.json()
         # We need to clean up the image urls so we can download them
-        imageURLs = map(cleanURL, bing_response['value'])
+        imageURLs = map(cleanBingURL, bing_response['value'])
         return imageURLs
 
     return None
+
+def getGoogleImageURLs(query, offset, count, adult_filter='off'):
+    assertPositiveCount(count)
+
+    # First get the image urls from Google
+    response = requests.get(GOOGLE_ROOT_URL,
+        params={
+            'q': query,
+            'cx': GOOGLE_CX_KEY,
+            'key': GOOGLE_IMAGE_API_KEY,
+            'safe': adult_filter,
+            'searchType': 'image',
+            'type': 'application/json'
+        })
+
+    checkResponseForErrors(response)
+
+    if response.ok:
+        google_response = response.json()
+        imageURLs = map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
+                        google_response['items'])
+        return imageURLs
+
+    return None
+
 
 def downloadImages(imageURLs, query, offset, count, max_threads=4):
     numImages = len(imageURLs)
@@ -96,14 +129,25 @@ def downloadImages(imageURLs, query, offset, count, max_threads=4):
                     data = future.result()
                     print('Downloaded image %d of %d' % (i, numImages - 1))
                 except Exception as e:
-                    print('%r generated an exception: %s' % (url, exc))
+                    print('%r generated an exception: %s' % (url, e))
     return None
 
+search_engine_table = {
+    'google': getGoogleImageURLs,
+    'bing': getBingImageURLs
+}
+
 if __name__ == "__main__":
-    if len(sys.argv) < 5:
+    num_args = len(sys.argv)
+    if num_args < 5:
         print('Not enough parameters!\n Usage: python image_master.py \
-        <query> <offset> <count> <adult - String, Moderate, Off>')
+        <query> <offset> <count> <adult - String, Moderate, Off> <(optional) engine - bing, google>')
     else:
-        query, offset, count, adult_filter = sys.argv[1:]
-        imageURLs = getImageURLs(query, offset, count, adult_filter)
+        query, offset, count, adult_filter = sys.argv[1:5]
+        search_function = search_engine_table['google'] # default to google
+        if num_args == 6:
+            search_function = search_engine_table.get(sys.argv[1:5])
+        if (search_function == None):
+            raise ValueError("Invalid search engine! Only bing and google (lowercase) are currently supported")
+        imageURLs = search_function(query, offset, count, adult_filter)
         downloadImages(imageURLs, query, offset, count)
