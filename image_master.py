@@ -100,7 +100,7 @@ def downloadImages(imageURLs, query, offset, count, max_threads=4):
 if __name__ == "__main__":
     if len(sys.argv) < 5:
         print('Not enough parameters!\n Usage: python image_master.py \
-        <query> <count> <offset> <adult - String, Moderate, Off>')
+        <query> <offset> <count> <adult - String, Moderate, Off>')
     else:
         query, offset, count, adult_filter = sys.argv[1:]
         imageURLs = getImageURLs(query, offset, count, adult_filter)
