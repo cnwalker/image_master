@@ -112,13 +112,13 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
     count = int(count)
     assertPositiveCount(count)
     # Add an iteration if there is leftover, otherwise do not
-    num_iterations = count/20 + int(not(not(count % 20)))
+    num_iterations = count/10 + int(not(not(count % 10)))
     offset = int(offset)
     initial_offset = offset
     initial_count = count
 
     for i in xrange(num_iterations):
-        print min(count, 20)
+        print min(count, 10)
         # First get the image urls from Google
         response = requests.get(GOOGLE_ROOT_URL,
             params={
@@ -126,8 +126,8 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
                 'cx': GOOGLE_CX_KEY,
                 'key': GOOGLE_IMAGE_API_KEY,
                 'safe': adult_filter.lower(),
-                'startIndex': offset + (i * 20),
-                'count': min(count, 20),
+                'startIndex': offset + (i * 10),
+                'count': min(count, 10),
                 'searchType': 'image',
                 'type': 'application/json'
             })
@@ -139,7 +139,7 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
             imageURLs += map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
                             google_response['items'])
             downloadImages(imageURLs, query, initial_offset, initial_count)
-            count -= 20
+            count -= 10
 
     if len(imageURLs):
         return imageURLs
