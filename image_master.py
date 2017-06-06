@@ -11,8 +11,8 @@ BING_IMAGE_API_KEY = '19aa2d868e5843c1951325a135db5703' # cnwalker
 
 # Google configs
 GOOGLE_ROOT_URL = 'https://www.googleapis.com/customsearch/v1'
-GOOGLE_CX_KEY = '015214662978282099550:vzll-becbck' #cnwalker
-GOOGLE_IMAGE_API_KEY = 'AIzaSyBDzxv_1DTFpMrLObHVyzZ7xU7eo1PX0eg' # cnwalker
+GOOGLE_CX_KEY = '014703581600628456418:bikvjo-7psc' #cnwalker
+GOOGLE_IMAGE_API_KEY = 'AIzaSyAi70PTj2pyYZkK23WfuXbezshP9iBRk6g' #AIzaSyBDzxv_1DTFpMrLObHVyzZ7xU7eo1PX0eg # cnwalker
 
 IMAGE_DOWNLOAD_DIR = '%s/' % os.path.dirname(os.path.realpath(__file__))
 
@@ -82,7 +82,7 @@ def downloadImages(imageURLs, query, offset, count, max_threads=4):
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         all_jobs = {}
         for i in xrange(numImages):
-            print "image num: %d" % i
+            print "image num: %d" % (int(offset) + i)
             file_extension = imageURLs[i][1]
             download_path = (
                 download_dir +
@@ -114,6 +114,8 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
     # Add an iteration if there is leftover, otherwise do not
     num_iterations = count/10 + int(not(not(count % 10)))
     offset = int(offset)
+    if offset == 0:
+        offset += 1
     initial_offset = offset
     initial_count = count
 
@@ -126,8 +128,8 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
                 'cx': GOOGLE_CX_KEY,
                 'key': GOOGLE_IMAGE_API_KEY,
                 'safe': adult_filter.lower(),
-                'startIndex': offset + (i * 10),
-                'count': min(count, 10),
+                'start': offset + (i * 10),
+                'num': min(count, 10),
                 'searchType': 'image',
                 'type': 'application/json'
             })
@@ -138,6 +140,7 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
             google_response = response.json()
             imageURLs += map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
                             google_response['items'])
+            print "batch: %d" % num_iterations
             downloadImages(imageURLs, query, initial_offset, initial_count)
             count -= 10
 
