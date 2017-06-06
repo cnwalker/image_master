@@ -82,6 +82,7 @@ def downloadImages(imageURLs, query, offset, count, max_threads=4):
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         all_jobs = {}
         for i in xrange(numImages):
+            print "image num: %d" % i
             file_extension = imageURLs[i][1]
             download_path = (
                 download_dir +
@@ -102,7 +103,6 @@ def downloadImages(imageURLs, query, offset, count, max_threads=4):
                 url = all_jobs[future]
                 try:
                     data = future.result()
-                    print('Downloaded image %d of %d' % (i, numImages - 1))
                 except Exception as e:
                     print('%r generated an exception: %s' % (url, e))
     return None
@@ -114,6 +114,8 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
     # Add an iteration if there is leftover, otherwise do not
     num_iterations = count/20 + int(not(not(count % 20)))
     offset = int(offset)
+    initial_offset = offset
+    initial_count = count
 
     for i in xrange(num_iterations):
         print min(count, 20)
@@ -136,7 +138,7 @@ def getGoogleImageURLs(query, offset, count, adult_filter='off'):
             google_response = response.json()
             imageURLs += map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
                             google_response['items'])
-            downloadImages(imageURLs, query, offset, count)
+            downloadImages(imageURLs, query, initial_offset, initial_count)
             count -= 20
 
     if len(imageURLs):
