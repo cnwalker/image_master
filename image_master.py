@@ -34,12 +34,12 @@ def checkResponseForErrors(response):
         response.raise_for_status()
     except requests.exceptions.HTTPError as err:
         getMessage = lambda x: x.get('message')
-        error_messages = '\n'.join(map(getMessage, response.json().get('errors')))
+        error_messages = '\n'.join(map(getMessage, response.json().get('error').get('errors')))
         print 'ERROR FROM SERVER:\n' + error_messages + '\n--------------'
         raise
 
 def assertPositiveCount(count):
-    if int(count) <= 0:
+    if count <= 0:
         raise ValueError("count must be greater than 0")
 
 
@@ -68,27 +68,38 @@ def getBingImageURLs(query, offset, count, adult_filter='Off'):
     return None
 
 def getGoogleImageURLs(query, offset, count, adult_filter='off'):
+    imageURLs = []
+    count = int(count)
     assertPositiveCount(count)
+    # Add an iteration if there is leftover, otherwise do not
+    num_iterations = count/20 + int(not(not(count % 20)))
+    offset = int(offset)
 
-    # First get the image urls from Google
-    response = requests.get(GOOGLE_ROOT_URL,
-        params={
-            'q': query,
-            'cx': GOOGLE_CX_KEY,
-            'key': GOOGLE_IMAGE_API_KEY,
-            'safe': adult_filter,
-            'searchType': 'image',
-            'type': 'application/json'
-        })
+    for i in xrange(num_iterations):
+        print min(count, 20)
+        # First get the image urls from Google
+        response = requests.get(GOOGLE_ROOT_URL,
+            params={
+                'q': query,
+                'cx': GOOGLE_CX_KEY,
+                'key': GOOGLE_IMAGE_API_KEY,
+                'safe': adult_filter.lower(),
+                'startIndex': offset + (i * 20),
+                'count': min(count, 20),
+                'searchType': 'image',
+                'type': 'application/json'
+            })
 
-    checkResponseForErrors(response)
+        checkResponseForErrors(response)
 
-    if response.ok:
-        google_response = response.json()
-        imageURLs = map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
-                        google_response['items'])
+        if response.ok:
+            google_response = response.json()
+            imageURLs += map(lambda x: (x.get('link'), x.get('link').split('.')[-1]),
+                            google_response['items'])
+            count -= 20
+
+    if len(imageURLs):
         return imageURLs
-
     return None
 
 
@@ -146,7 +157,7 @@ if __name__ == "__main__":
         query, offset, count, adult_filter = sys.argv[1:5]
         search_function = search_engine_table['google'] # default to google
         if num_args == 6:
-            search_function = search_engine_table.get(sys.argv[1:5])
+            search_function = search_engine_table.get(sys.argv[-1])
         if (search_function == None):
             raise ValueError("Invalid search engine! Only bing and google (lowercase) are currently supported")
         imageURLs = search_function(query, offset, count, adult_filter)
