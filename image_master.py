@@ -161,4 +161,8 @@ if __name__ == "__main__":
             search_function = search_engine_table.get(sys.argv[-1])
         if (search_function == None):
             raise ValueError("Invalid search engine! Only bing and google (lowercase) are currently supported")
+
         imageURLs = search_function(query, offset, count, adult_filter)
+
+        if sys.argv[-1].lower() == 'bing':
+            downloadImages(imageURLs, query, offset, count)
