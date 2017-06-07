@@ -4,6 +4,9 @@ import urllib2
 import concurrent.futures
 
 import requests
+import glob
+
+import image_verify
 
 # Bing configs
 BING_ROOT_URL = 'https://api.cognitive.microsoft.com/bing/v5.0/images/search'
@@ -158,7 +161,8 @@ if __name__ == "__main__":
     num_args = len(sys.argv)
     if num_args < 5:
         print('Not enough parameters!\n Usage: python image_master.py \
-        <query> <offset> <count> <adult - String, Moderate, Off> <(optional) engine - bing, google>')
+        <query> <offset> <count> <adult - String, Moderate, Off> <(optional) engine - bing, google>\
+        adult search options displayed are for google, bing is <adult - String, Moderate, Off>')
     else:
         query, offset, count, adult_filter = sys.argv[1:5]
         search_function = search_engine_table['google'] # default to google
@@ -171,3 +175,10 @@ if __name__ == "__main__":
 
         if sys.argv[-1].lower() == 'bing':
             downloadImages(imageURLs, query, offset, count)
+
+        query_dir = '%s_%s_%s/*' % (query, offset, count)
+        download_dir = IMAGE_DOWNLOAD_DIR + query_dir
+
+        all_images = glob.glob(download_dir)
+        for img in all_images:
+            image_verify.process_image(img)
